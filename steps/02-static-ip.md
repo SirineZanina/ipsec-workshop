@@ -1,5 +1,4 @@
 # Step 2 — Static IP Configuration
-
 > ⏱ ~10 minutes | Run on: **both VMs**
 
 Assign static IPs to the `ipsec-lab` interface on each VM.
@@ -38,11 +37,13 @@ You will see two interfaces (ignoring `lo`). The one **without** an IP assigned 
 ## 2.2 — Configure GW-A (Sousse)
 
 Edit the Netplan config:
+
 ```bash
 sudo nano /etc/netplan/50-cloud-init.yaml
 ```
 
 Replace the contents with (adjust interface names to match your system):
+
 ```yaml
 network:
   version: 2
@@ -56,16 +57,26 @@ network:
 ```
 
 Apply and secure:
+
 ```bash
 sudo chmod 600 /etc/netplan/50-cloud-init.yaml
 sudo netplan apply
 ```
+
+If Netplan did not bring the interface up, bring it up manually:
+
+```bash
+sudo ip link set enp2s0 up
+```
+
+> Replace `enp2s0` with your actual interface name if different.
 
 ---
 
 ## 2.3 — Configure GW-B (Tunis)
 
 Edit the Netplan config:
+
 ```bash
 sudo nano /etc/netplan/50-cloud-init.yaml
 ```
@@ -83,29 +94,42 @@ network:
 ```
 
 Apply and secure:
+
 ```bash
 sudo chmod 600 /etc/netplan/50-cloud-init.yaml
 sudo netplan apply
 ```
+
+If Netplan did not bring the interface up, bring it up manually:
+
+```bash
+sudo ip link set enp2s0 up
+```
+
+> Replace `enp2s0` with your actual interface name if different.
 
 ---
 
 ## 2.4 — Verify Connectivity
 
 From **GW-A**, ping GW-B:
+
 ```bash
 ping -c 4 192.168.56.20
 ```
 
 From **GW-B**, ping GW-A:
+
 ```bash
 ping -c 4 192.168.56.10
 ```
 
 Expected: `0% packet loss` on both sides. If ping fails, double-check:
+
 - Both VMs are attached to the same `ipsec-lab` network
 - Interface names in Netplan match your actual interface names (`ip link show`)
 - `sudo netplan apply` was run after editing
+- The interface state is UP — run `ip link show <interface>` and confirm `state UP`
 
 ---
 

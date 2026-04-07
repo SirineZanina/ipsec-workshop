@@ -1,10 +1,9 @@
 # Step 3 — Install StrongSwan and Required Packages
-
 > ⏱ ~10 minutes | Run on: **both VMs**
 
 ---
 
-## 3.1 — Install All Packages
+## 3.1 — Install StrongSwan
 
 Run on **both GW-A and GW-B**:
 
@@ -18,10 +17,7 @@ sudo apt install -y \
   libcharon-extra-plugins \
   libcharon-extauth-plugins \
   libstrongswan-extra-plugins \
-  libstrongswan-standard-plugins \
-  tcpdump \
-  wireshark-common \
-  net-tools
+  libstrongswan-standard-plugins
 ```
 
 ### Package Reference
@@ -36,13 +32,30 @@ sudo apt install -y \
 | `libcharon-extauth-plugins` | PAM and external authentication plugins for charon |
 | `libstrongswan-standard-plugins` | Core crypto: x509, pem, pkcs1/pkcs8, sha2 — needed to load keys and certs |
 | `libstrongswan-extra-plugins` | Extra crypto: `ecp` (required for `ecp384` DH group), AES-GCM — without this, `NO_PROPOSAL_CHOSEN` |
+
+---
+
+## 3.2 — Install Traffic Capture Tools (Optional)
+
+Only needed if you want to **capture and view traffic directly on the VM**. If you plan to copy `.pcap` files to your host machine and open them with Wireshark there, you only need `tcpdump`.
+
+```bash
+# Minimum — capture only (recommended)
+sudo apt install -y tcpdump
+
+# Optional — also view captures on the VM itself
+sudo apt install -y tcpdump wireshark-common net-tools
+```
+
+| Package | Purpose |
+|---------|---------|
 | `tcpdump` | Capture ESP and IKE packets on the WAN interface |
-| `wireshark-common` | IKEv2/ESP dissectors — open `.pcap` files on your host with Wireshark |
+| `wireshark-common` | IKEv2/ESP dissectors — only needed to open `.pcap` files on the VM |
 | `net-tools` | `ifconfig`, `netstat` — useful for troubleshooting |
 
 ---
 
-## 3.2 — Disable the Legacy IPsec Daemon
+## 3.3 — Disable the Legacy IPsec Daemon
 
 > ⚠️ **Critical step — do not skip.**
 
@@ -59,7 +72,7 @@ sudo systemctl disable strongswan-starter
 
 ---
 
-## 3.3 — ⚠️ Reboot Both VMs
+## 3.4 — ⚠️ Reboot Both VMs
 
 ```bash
 sudo reboot
@@ -69,22 +82,25 @@ sudo reboot
 
 ---
 
-## 3.4 — Verify After Reboot
+## 3.5 — Verify After Reboot
 
 After rebooting, SSH back in and run on **both VMs**:
 
 **Check the correct daemon is running:**
+
 ```bash
 sudo ss -ulnp | grep 500
 ```
 
 You must see `charon-systemd` — **not** `charon`:
+
 ```
 UNCONN 0  0  0.0.0.0:500   0.0.0.0:*  users:(("charon-systemd",...))
 UNCONN 0  0  0.0.0.0:4500  0.0.0.0:*  users:(("charon-systemd",...))
 ```
 
 If you see `charon` (without `-systemd`), the legacy daemon is still running:
+
 ```bash
 sudo systemctl stop ipsec
 sudo kill <pid shown in ss output>
@@ -92,6 +108,7 @@ sudo systemctl restart strongswan
 ```
 
 **Check the socket plugin is loaded:**
+
 ```bash
 sudo journalctl -u strongswan | grep "loaded plugins"
 ```
@@ -99,8 +116,9 @@ sudo journalctl -u strongswan | grep "loaded plugins"
 Confirm `socket-default` appears in the list. If it does not appear, reboot again.
 
 **Check StrongSwan version:**
+
 ```bash
-swanctl --version
+sudo swanctl --version
 # or
 ipsec version
 ```
